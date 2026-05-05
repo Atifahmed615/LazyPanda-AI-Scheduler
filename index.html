@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lazy Panda">
+<meta name="theme-color" content="#0a0a0f">
+<title>Lazy Panda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<script>
+  if ('serviceWorker' in navigator && !location.hostname.includes('claudeusercontent.com') && location.protocol === 'https:') {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js')
+        .then(function(r){ console.log('SW registered'); })
+        .catch(function(e){ console.log('SW failed:', e); });
+    });
+  }
+</script>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- ears -->
+          <circle cx="4.5" cy="4.5" r="3.5" fill="#1a1a2e"/>
+          <circle cx="17.5" cy="4.5" r="3.5" fill="#1a1a2e"/>
+          <circle cx="4.5" cy="4.5" r="1.8" fill="#3a3a5c"/>
+          <circle cx="17.5" cy="4.5" r="1.8" fill="#3a3a5c"/>
+          <!-- face -->
+          <circle cx="11" cy="13" r="8.5" fill="#f0f0f5"/>
+          <!-- eye patches -->
+          <ellipse cx="7.5" cy="11" rx="2.6" ry="2.8" fill="#1a1a2e"/>
+          <ellipse cx="14.5" cy="11" rx="2.6" ry="2.8" fill="#1a1a2e"/>
+          <!-- eyes -->
+          <circle cx="7.5" cy="11.2" r="1.2" fill="white"/>
+          <circle cx="14.5" cy="11.2" r="1.2" fill="white"/>
+          <circle cx="8" cy="10.8" r="0.55" fill="#1a1a2e"/>
+          <circle cx="15" cy="10.8" r="0.55" fill="#1a1a2e"/>
+          <!-- nose -->
+          <ellipse cx="11" cy="14.5" rx="1.3" ry="0.9" fill="#b0b0c8"/>
+          <!-- mouth -->
+          <path d="M9.5 15.8 Q11 17 12.5 15.8" stroke="#b0b0c8" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">Lazy Panda</div>
+        <div class="logo-sub">AI SCHEDULER</div>
+      </div>
+    </div>
+
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </span> Dashboard
+    </div>
+    <div class="nav-item" id="nav-schedule" onclick="showView('schedule')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="8" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+      </span> Schedule
+    </div>
+    <div class="nav-item" id="nav-tasks" onclick="showView('tasks')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </span> Tasks <span class="nav-badge" id="task-badge">0</span>
+    </div>
+    <div class="nav-item" id="nav-deadlines" onclick="showView('deadlines')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </span> Deadlines
+    </div>
+    <div class="nav-item" id="nav-focus" onclick="showView('focus')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </span> Focus
+    </div>
+
+    <div class="nav-section" style="margin-top:12px;">Academic</div>
+    <div class="nav-item" id="nav-attendance" onclick="showView('attendance')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </span> Attendance
+    </div>
+    <div class="nav-item" id="nav-grades" onclick="showView('grades')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      </span> GPA Tracker
+    </div>
+    <div class="nav-item" id="nav-notes-chat" onclick="showView('notes-chat')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </span> Chat Notes
+    </div>
+    <div class="nav-item" id="nav-optimizer" onclick="showView('optimizer')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </span> Optimizer
+    </div>
+
+    <div class="nav-section" style="margin-top:12px;">System</div>
+    <div class="nav-item" id="nav-settings" onclick="showView('settings')">
+      <span class="nav-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </span> Settings
+    </div>
+
+    <div class="sidebar-bottom">
+      <div style="padding:8px;background:var(--surface2);border-radius:var(--r-sm);">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Gemini Status</div>
+        <div style="font-size:12px;color:var(--green);font-weight:500;" id="api-status-sidebar">⬤ Connected</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MOBILE FIXED HEADER -->
+  <div class="mobile-header" id="mobile-header-bar">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+      <div style="width:28px;height:28px;background:#2a2a3e;border-radius:7px;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="4.5" cy="4.5" r="3.5" fill="#1a1a2e"/>
+          <circle cx="17.5" cy="4.5" r="3.5" fill="#1a1a2e"/>
+          <circle cx="4.5" cy="4.5" r="1.8" fill="#3a3a5c"/>
+          <circle cx="17.5" cy="4.5" r="1.8" fill="#3a3a5c"/>
+          <circle cx="11" cy="13" r="8.5" fill="#f0f0f5"/>
+          <ellipse cx="7.5" cy="11" rx="2.6" ry="2.8" fill="#1a1a2e"/>
+          <ellipse cx="14.5" cy="11" rx="2.6" ry="2.8" fill="#1a1a2e"/>
+          <circle cx="7.5" cy="11.2" r="1.2" fill="white"/>
+          <circle cx="14.5" cy="11.2" r="1.2" fill="white"/>
+          <circle cx="8" cy="10.8" r="0.55" fill="#1a1a2e"/>
+          <circle cx="15" cy="10.8" r="0.55" fill="#1a1a2e"/>
+          <ellipse cx="11" cy="14.5" rx="1.3" ry="0.9" fill="#b0b0c8"/>
+        </svg>
+      </div>
+      <span class="mobile-header-title" id="mobile-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Dashboard</span>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main panel" id="main-panel">
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard">
+
+      <!-- Upcoming Class -->
+      <div id="upcoming-card-wrap" style="margin-bottom:8px;"></div>
+
+      <!-- Today's Schedule -->
+      <div>
+        <div class="section-header">
+          <span class="section-title">TODAY'S SCHEDULE</span>
+          <button class="btn-add" onclick="showAddModal()">＋ Add Event</button>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+
+      <!-- Tasks -->
+      <div>
+        <div class="section-header">
+          <span class="section-title">TASKS</span>
+          <button class="btn-add" onclick="showAddTaskModal()">＋ Add Task</button>
+        </div>
+        <div class="tasks-grid">
+          <div class="task-col">
+            <div class="task-col-title">📅 Today</div>
+            <div id="tasks-today"></div>
+          </div>
+          <div class="task-col">
+            <div class="task-col-title">🔜 Upcoming</div>
+            <div id="tasks-upcoming"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SCHEDULE VIEW -->
+    <div id="view-schedule" class="hidden">
+      <div class="section-header">
+        <div class="search-filter-bar" style="display:flex;gap:12px;align-items:center;flex:1;margin-right:12px;">
+          <input type="text" id="schedule-search" placeholder="Search events..." 
+                 style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;"
+                 onkeyup="filterScheduleEvents()">
+          <select id="schedule-category-filter" onchange="filterScheduleEvents()"
+                  style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;">
+            <option value="">All Categories</option>
+            <option value="class">Class</option>
+            <option value="study">Study</option>
+            <option value="meeting">Meeting</option>
+            <option value="personal">Personal</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="view-toggle">
+          <div class="view-toggle-btn active" id="btn-view-week" onclick="setScheduleMode('week')">Week</div>
+          <div class="view-toggle-btn" id="btn-view-list" onclick="setScheduleMode('list')">List</div>
+        </div>
+        <button class="btn-add" onclick="showAddModal()">＋ Add Event</button>
+      </div>
+
+      <!-- Week Grid -->
+      <div id="schedule-week">
+        <div class="cal-grid-wrap">
+          <div class="cal-header" id="cal-header"></div>
+          <div class="cal-body">
+            <div class="cal-times" id="cal-times"></div>
+            <div class="cal-days" id="cal-days"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div id="schedule-list" class="hidden">
+        <div class="timeline" id="all-events-list"></div>
+      </div>
+    </div>
+
+    <!-- FOCUS VIEW -->
+    <div id="view-focus" class="hidden">
+      <div class="pomodoro-container">
+        <div class="pomodoro-box" id="pomo-box">
+          <div class="pomo-mode-tabs">
+            <button class="pomo-tab active" id="tab-work" onclick="setPomodoroMode('work')">Focus (25m)</button>
+            <button class="pomo-tab" id="tab-break" onclick="setPomodoroMode('break')">Short Break (5m)</button>
+          </div>
+          <div class="pomodoro-time" id="pomo-time">25:00</div>
+          <div class="pomodoro-status" id="pomo-status">Ready to focus</div>
+          <div class="pomodoro-actions">
+            <button class="pomo-btn primary" onclick="togglePomodoro()" id="pomo-toggle">Start Focus</button>
+            <button class="pomo-btn" onclick="resetPomodoro()">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS VIEW -->
+    <div id="view-tasks" class="hidden">
+      <div class="section-header">
+        <span class="section-title">ALL TASKS</span>
+        <button class="btn-add" onclick="showAddTaskModal()">＋ Add Task</button>
+      </div>
+      <div class="task-col" style="background:none;border:none;padding:0;">
+        <div id="all-tasks-list"></div>
+      </div>
+    </div>
+
+    <!-- DEADLINES VIEW -->
+    <div id="view-deadlines" class="hidden">
+      <div class="section-header">
+        <span class="section-title">DEADLINE COUNTDOWN</span>
+        <button class="btn-add" onclick="showAddTaskModal()">＋ Add Task</button>
+      </div>
+      <div id="deadlines-list"></div>
+    </div>
+
+    <!-- ATTENDANCE VIEW -->
+    <div id="view-attendance" class="hidden">
+      <div class="section-header">
+        <span class="section-title">ATTENDANCE TRACKER</span>
+        <button class="btn-add" onclick="showMarkAttendanceModal()">＋ Mark Session</button>
+      </div>
+      <div id="attendance-summary"></div>
+      <div id="attendance-log" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- CHAT WITH NOTES VIEW -->
+    <div id="view-notes-chat" class="hidden">
+      <div class="section-header">
+        <span class="section-title">CHAT WITH NOTES</span>
+        <button class="btn-add" onclick="document.getElementById('notes-pdf-input').click()">＋ Upload PDF</button>
+        <input type="file" id="notes-pdf-input" accept=".pdf,.txt,.md" multiple style="display:none;" onchange="handleNotesUpload(event)">
+      </div>
+      <div id="notes-docs-list" style="margin-bottom:12px;"></div>
+      <div class="notes-chat-box">
+        <div class="notes-chat-messages" id="notes-chat-messages">
+          <div class="msg ai">
+            <div class="msg-bubble">📚 Hi! Upload a PDF, text file, or I can search across all your class notes. Ask me anything about your study material!</div>
+            <div class="msg-time">Now</div>
+          </div>
+        </div>
+        <div class="chat-input-area" style="border-top:1px solid var(--border);padding:12px;">
+          <textarea class="chat-input" id="notes-chat-input" placeholder="Ask about your notes or uploaded documents…" rows="1" onkeydown="handleNotesChatKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="chat-send" onclick="sendNotesChat()">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTO OPTIMIZER VIEW -->
+    <div id="view-optimizer" class="hidden">
+      <div class="section-header">
+        <span class="section-title">SCHEDULE OPTIMIZER</span>
+        <button class="btn-add" onclick="runOptimizer()">⚡ Optimize Now</button>
+      </div>
+      <div id="optimizer-prefs" style="margin-bottom:16px;">
+        <div class="settings-section" style="margin-bottom:0;">
+          <div class="settings-label" style="margin-bottom:10px;">Optimization Preferences</div>
+          <div class="form-group form-row">
+            <div>
+              <label class="form-label">Study block duration</label>
+              <select class="form-input" id="opt-block-size">
+                <option value="60">1 hour</option>
+                <option value="90" selected>1.5 hours</option>
+                <option value="120">2 hours</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Peak focus time</label>
+              <select class="form-input" id="opt-peak-time">
+                <option value="morning">Morning (6–12)</option>
+                <option value="afternoon">Afternoon (12–17)</option>
+                <option value="evening" selected>Evening (17–21)</option>
+                <option value="night">Night (21–24)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group form-row" style="margin-bottom:0;">
+            <div>
+              <label class="form-label">Break between blocks</label>
+              <select class="form-input" id="opt-break-size">
+                <option value="10">10 min</option>
+                <option value="15" selected>15 min</option>
+                <option value="30">30 min</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Days to plan ahead</label>
+              <select class="form-input" id="opt-days">
+                <option value="3">3 days</option>
+                <option value="7" selected>7 days</option>
+                <option value="14">14 days</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="optimizer-output"></div>
+    </div>
+
+    <!-- GPA TRACKER VIEW -->
+    <div id="view-grades" class="hidden">
+      <div class="section-header">
+        <span class="section-title">GPA TRACKER</span>
+        <button class="btn-add" onclick="showAddGradeModal()">＋ Add Grade</button>
+      </div>
+      <div id="gpa-summary"></div>
+      <div id="grades-list" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="view-settings" class="hidden">
+      <div class="settings-section">
+        <div class="settings-label">🎨 Appearance</div>
+        <div class="settings-desc">Choose your preferred theme and accent color.</div>
+        <div class="form-group form-row">
+          <div>
+            <label class="form-label">Theme</label>
+            <select class="form-input" id="settings-theme" onchange="changeTheme()">
+              <option value="dark">Dark (Default)</option>
+              <option value="amoled">AMOLED (Pure Black)</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Accent Color</label>
+            <input class="form-input" type="color" id="settings-accent" onchange="changeAccent()" style="padding:4px; height:38px; cursor:pointer;">
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">🔑 Gemini API Key</div>
+        <div class="settings-desc">
+          Required for the AI assistant — <b style="color:var(--green);">completely free</b>, no credit card needed.<br><br>
+          <b>Steps to get your key:</b><br>
+          1. Go to <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com/apikey</a><br>
+          2. Sign in with your Google account<br>
+          3. Click <b>"Create API Key"</b><br>
+          4. Copy and paste it below
+        </div>
+        <div style="position:relative;margin-bottom:10px;">
+          <input class="form-input" type="password" id="settings-api-key" placeholder="AIzaSy..." style="padding-right:44px;">
+          <span onclick="toggleKeyVisibility()" id="key-eye" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;color:var(--text3);">👁</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-save" onclick="saveApiKey()">💾 Save Key</button>
+          <button class="btn-cancel" onclick="testApiKey()" id="test-btn">🧪 Test Key</button>
+        </div>
+        <div id="api-key-status" style="font-size:12px;margin-top:10px;color:var(--text3);padding:8px;background:var(--surface2);border-radius:6px;display:none;"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">📱 Install as App</div>
+        <div class="settings-desc">On iPhone: tap Share → "Add to Home Screen". On Android: tap menu → "Add to Home Screen" or "Install App".</div>
+        <div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:8px;padding:10px;">
+          ① Open this file in your browser<br>
+          ② Tap the share / menu button<br>
+          ③ Choose "Add to Home Screen"<br>
+          ④ ClassFlow will appear as an app icon
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">💾 Backup & Restore</div>
+        <div class="settings-desc">Export your data before updating the app to keep it safe. Import to restore.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-save" onclick="exportData()">⬇️ Export Data</button>
+          <label class="btn-cancel" style="cursor:pointer;">
+            ⬆️ Import Data
+            <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+          </label>
+        </div>
+        <div id="backup-status" style="font-size:12px;margin-top:8px;color:var(--text3);display:none;padding:8px;background:var(--surface2);border-radius:6px;"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">🔔 Notifications</div>
+        <div class="settings-desc">Get notified before your classes start. Requires browser permission.</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="btn-save" onclick="requestNotificationPermission()" id="notif-enable-btn">🔔 Enable Notifications</button>
+          <span id="notif-status" style="font-size:12px;color:var(--text3);"></span>
+        </div>
+        <div class="form-group form-row" style="margin-bottom:0;">
+          <div>
+            <label class="form-label">Remind me before class</label>
+            <select class="form-input" id="notif-minutes" onchange="saveNotifPrefs()">
+              <option value="5">5 minutes</option>
+              <option value="10" selected>10 minutes</option>
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <button class="btn-cancel" onclick="testNotification()">🧪 Test Notification</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">📤 Share Schedule</div>
+        <div class="settings-desc">Share today's schedule or your full timetable as an image or text.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-save" onclick="shareSchedule('today')">📅 Share Today</button>
+          <button class="btn-cancel" onclick="shareSchedule('week')">📆 Share Week</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">📅 Google Calendar Sync</div>
+        <div class="settings-desc">Sync your Lazy Panda schedule with Google Calendar. Requires a Google account sign-in.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="btn-save" id="gcal-connect-btn" onclick="connectGoogleCalendar()">🔗 Connect Google Calendar</button>
+          <button class="btn-cancel" id="gcal-sync-btn" onclick="syncToGoogleCalendar()" style="display:none;">↑ Sync Events</button>
+          <button class="btn-cancel" id="gcal-import-btn" onclick="importFromGoogleCalendar()" style="display:none;">↓ Import Events</button>
+          <button class="btn-cancel" id="gcal-disconnect-btn" onclick="disconnectGoogleCalendar()" style="display:none;">✕ Disconnect</button>
+        </div>
+        <div id="gcal-status" style="font-size:12px;color:var(--text3);padding:8px;background:var(--surface2);border-radius:6px;display:none;"></div>
+        <div style="margin-top:10px;">
+          <label class="form-label">Google Client ID <span style="color:var(--text3);font-weight:400;">(from Google Cloud Console)</span></label>
+          <input class="form-input" id="gcal-client-id" placeholder="xxxxxxxx.apps.googleusercontent.com" style="margin-top:4px;">
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;">
+            Get a Client ID free at <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent);">console.cloud.google.com</a> → APIs & Services → Credentials → OAuth 2.0 Client ID (Web App). Add <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">https://lazypanda.app</code> as an authorized origin.
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">💬 WhatsApp Reminders</div>
+        <div class="settings-desc">Get class reminders directly on WhatsApp. This feature requires a small backend server to relay messages via the WhatsApp Business API.</div>
+        <div style="background:var(--surface2);border-radius:var(--r-sm);padding:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+          <b style="color:var(--amber);">⚠️ Backend Required</b> — WhatsApp messages cannot be sent directly from a browser for security reasons. You need to set up a relay server.<br><br>
+          <b>Option A — Self-hosted (free):</b><br>
+          1. Clone the <a href="https://github.com" target="_blank" style="color:var(--accent);">Lazy Panda WhatsApp Server</a> repo<br>
+          2. Deploy to Railway / Render / Vercel (free tier)<br>
+          3. Add your Twilio WhatsApp API key<br>
+          4. Paste your server URL below<br><br>
+          <b>Option B — Use Twilio directly:</b><br>
+          Sign up at <a href="https://twilio.com" target="_blank" style="color:var(--accent);">twilio.com</a>, get a WhatsApp-enabled number, and connect below.
+        </div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+          <input class="form-input" id="wa-phone" placeholder="Your WhatsApp number (+923001234567)" type="tel">
+          <input class="form-input" id="wa-server" placeholder="Your relay server URL (https://…)">
+          <div style="display:flex;gap:8px;">
+            <button class="btn-save" onclick="saveWhatsAppConfig()">💾 Save Config</button>
+            <button class="btn-cancel" onclick="testWhatsApp()">🧪 Send Test Message</button>
+          </div>
+        </div>
+        <div id="wa-status" style="font-size:12px;margin-top:8px;color:var(--text3);display:none;padding:8px;background:var(--surface2);border-radius:6px;"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">🗑️ Reset Data</div>
+        <div class="settings-desc">Clear all events and tasks and start fresh.</div>
+        <button class="btn-cancel" onclick="resetData()">Reset Everything</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- CHAT OVERLAY (mobile slides up, desktop is sidebar) -->
+  <div class="chat-overlay" id="chat-overlay">
+    <div class="chat-panel" style="flex:1;display:flex;flex-direction:column;width:100%;">
+
+      <div class="chat-header">
+        <div class="chat-avatar">🐼</div>
+        <div class="chat-header-text">
+          <div class="chat-name">Lazy Panda 🐼</div>
+          <div class="chat-status" id="ai-chat-status">Ready</div>
+        </div>
+        <button class="chat-close" onclick="closeChatOverlay()" style="display:none;" id="chat-close-btn">✕</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="msg ai">
+          <div class="msg-bubble">Hey! 🐼 I'm Lazy Panda, powered by Gemini AI. I can see your schedule and help you manage it.<br><br>Try asking me to add an event, reschedule a class, or create a task.</div>
+          <div class="msg-time">Now</div>
+        </div>
+      </div>
+
+      <div class="quick-chips" id="quick-chips">
+        <div class="chip" onclick="sendQuick('What classes do I have today?')">Today's classes</div>
+        <div class="chip" onclick="triggerDailyBriefing()">📋 Daily briefing</div>
+        <div class="chip" onclick="sendQuick('Check my schedule for any conflicts or overlapping events')">⚡ Check conflicts</div>
+        <div class="chip" onclick="triggerExamMode()">🎯 Exam mode</div>
+        <div class="chip" onclick="sendQuick('What free time do I have today?')">Free time today</div>
+        <div class="chip" onclick="sendQuick('Create a task: Review ML notes, due today, high priority')">Add task</div>
+      </div>
+
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chat-input" placeholder="Ask anything about your schedule…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="chat-send" id="chat-send" onclick="sendMessage()">↑</button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <!-- PRIMARY 5 TABS -->
+    <div class="mobile-nav-item active" id="mnav-dashboard" onclick="showView('dashboard')">
+      <div class="mobile-nav-icon">
+        <svg class="nav-svg nav-svg-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <svg class="nav-svg nav-svg-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22" fill="none" stroke="white" stroke-width="1.5"/></svg>
+      </div>
+      <div>Home</div>
+    </div>
+
+    <div class="mobile-nav-item" id="mnav-schedule" onclick="showView('schedule')">
+      <div class="mobile-nav-icon">
+        <svg class="nav-svg nav-svg-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="12" y1="14" x2="12.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/><line x1="8" y1="18" x2="8.01" y2="18"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <svg class="nav-svg nav-svg-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke-width="0"><rect x="3" y="4" width="18" height="18" rx="2"/><rect x="3" y="4" width="18" height="7" rx="2" fill="var(--accent2)"/><circle cx="8" cy="15" r="1.2" fill="white"/><circle cx="12" cy="15" r="1.2" fill="white"/><circle cx="16" cy="15" r="1.2" fill="white"/><circle cx="8" cy="19" r="1.2" fill="white"/><circle cx="12" cy="19" r="1.2" fill="white"/><line x1="8" y1="2" x2="8" y2="7" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="7" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div>Schedule</div>
+    </div>
+
+    <div class="mobile-nav-item" id="mnav-tasks" onclick="showView('tasks')">
+      <div class="mobile-nav-icon">
+        <svg class="nav-svg nav-svg-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <svg class="nav-svg nav-svg-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke-width="0"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" fill="currentColor"/><path d="M9 11l3 3L22 4" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>Tasks</div>
+    </div>
+
+    <div class="mobile-nav-item" id="mnav-deadlines" onclick="showView('deadlines')">
+      <div class="mobile-nav-icon">
+        <svg class="nav-svg nav-svg-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <svg class="nav-svg nav-svg-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke-width="0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>Due</div>
+    </div>
+
+    <div class="mobile-nav-item" id="mnav-focus" onclick="showView('focus')">
+      <div class="mobile-nav-icon">
+        <svg class="nav-svg nav-svg-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <svg class="nav-svg nav-svg-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke-width="0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5" fill="var(--accent2)"/><circle cx="12" cy="12" r="2" fill="white"/></svg>
+      </div>
+      <div>Focus</div>
+    </div>
+
+    <!-- MORE BUTTON -->
+    <div class="mobile-nav-item" id="mnav-more" onclick="toggleMobileDrawer()">
+      <div class="mobile-nav-icon">
+        <svg class="nav-svg nav-svg-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        <svg class="nav-svg nav-svg-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke-width="0"><circle cx="12" cy="5" r="1.5" fill="white"/><circle cx="12" cy="12" r="1.5" fill="white"/><circle cx="12" cy="19" r="1.5" fill="white"/></svg>
+      </div>
+      <div>More</div>
+    </div>
+  </div>
+</nav>
+
+<!-- MOBILE DRAWER (HIDDEN 5 ITEMS) -->
+<div class="mobile-drawer-overlay" id="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+<div class="mobile-drawer" id="mobile-drawer">
+  <div class="mobile-drawer-header">
+    <div class="mobile-drawer-title">More Options</div>
+    <button class="mobile-drawer-close" onclick="closeMobileDrawer()">✕</button>
+  </div>
+  <div class="mobile-drawer-content">
+    <div class="mobile-drawer-item" onclick="showView('attendance')">
+      <div class="mobile-drawer-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div>
+        <div class="mobile-drawer-item-title">Attendance</div>
+        <div class="mobile-drawer-item-desc">Track class attendance</div>
+      </div>
+    </div>
+
+    <div class="mobile-drawer-item" onclick="showView('grades')">
+      <div class="mobile-drawer-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      </div>
+      <div>
+        <div class="mobile-drawer-item-title">GPA Tracker</div>
+        <div class="mobile-drawer-item-desc">View grades & GPA</div>
+      </div>
+    </div>
+
+    <div class="mobile-drawer-item" onclick="showView('notes-chat')">
+      <div class="mobile-drawer-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div>
+        <div class="mobile-drawer-item-title">Notes & Chat</div>
+        <div class="mobile-drawer-item-desc">AI notes & messages</div>
+      </div>
+    </div>
+
+    <div class="mobile-drawer-item" onclick="showView('optimizer')">
+      <div class="mobile-drawer-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <div>
+        <div class="mobile-drawer-item-title">Schedule Optimizer</div>
+        <div class="mobile-drawer-item-desc">Optimize your schedule</div>
+      </div>
+    </div>
+
+    <div class="mobile-drawer-item" onclick="showView('settings')">
+      <div class="mobile-drawer-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div>
+        <div class="mobile-drawer-item-title">Settings</div>
+        <div class="mobile-drawer-item-desc">Configure your app</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE CHAT FAB -->
+<button class="mobile-chat-fab" id="chat-fab" onclick="openChatOverlay()">🐼</button>
+
+<!-- ADD EVENT MODAL -->
+<div class="modal-overlay hidden" id="event-modal">
+  <div class="modal">
+    <div class="modal-title" id="event-modal-title">Add Event</div>
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input class="form-input" id="ev-title" placeholder="e.g. Machine Learning Class">
+    </div>
+    <div class="form-group form-row">
+      <div>
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="ev-date">
+      </div>
+      <div>
+        <label class="form-label">Category</label>
+        <select class="form-input" id="ev-category">
+          <option value="class">Class</option>
+          <option value="study">Study</option>
+          <option value="meeting">Meeting</option>
+          <option value="personal">Personal</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group form-row">
+      <div>
+        <label class="form-label">Start Time</label>
+        <input class="form-input" type="time" id="ev-start">
+      </div>
+      <div>
+        <label class="form-label">End Time</label>
+        <input class="form-input" type="time" id="ev-end">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location (optional)</label>
+      <input class="form-input" id="ev-location" placeholder="e.g. NED CIS Department">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recurring</label>
+      <select class="form-input" id="ev-recurring">
+        <option value="none">One-time</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="weekends">Sat & Sun</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📝 Class Notes (optional)</label>
+      <textarea class="form-input" id="ev-notes" rows="4" placeholder="Lecture notes, topics covered, homework assigned…" style="resize:vertical;font-family:var(--mono);font-size:12px;line-height:1.6;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('event-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveEvent()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TASK MODAL -->
+<div class="modal-overlay hidden" id="task-modal">
+  <div class="modal">
+    <div class="modal-title">Add Task</div>
+    <div class="form-group">
+      <label class="form-label">Task Name</label>
+      <input class="form-input" id="tk-name" placeholder="e.g. Review ML notes">
+    </div>
+    <div class="form-group form-row">
+      <div>
+        <label class="form-label">Due Date</label>
+        <input class="form-input" type="date" id="tk-due">
+      </div>
+      <div>
+        <label class="form-label">Priority</label>
+        <select class="form-input" id="tk-priority">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('task-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- MARK ATTENDANCE MODAL -->
+<div class="modal-overlay hidden" id="attendance-modal">
+  <div class="modal">
+    <div class="modal-title">Mark Attendance</div>
+    <div class="form-group">
+      <label class="form-label">Subject / Class</label>
+      <select class="form-input" id="att-subject"></select>
+    </div>
+    <div class="form-group form-row">
+      <div>
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="att-date">
+      </div>
+      <div>
+        <label class="form-label">Status</label>
+        <select class="form-input" id="att-status">
+          <option value="present">✅ Present</option>
+          <option value="absent">❌ Absent</option>
+          <option value="late">🕐 Late</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optional)</label>
+      <input class="form-input" id="att-note" placeholder="e.g. Sick leave">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('attendance-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveAttendance()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD GRADE MODAL -->
+<div class="modal-overlay hidden" id="grade-modal">
+  <div class="modal">
+    <div class="modal-title" id="grade-modal-title">Add Grade</div>
+    <div class="form-group">
+      <label class="form-label">Subject / Course</label>
+      <input class="form-input" id="gr-subject" placeholder="e.g. Machine Learning">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Assessment Name</label>
+      <input class="form-input" id="gr-name" placeholder="e.g. Midterm Exam">
+    </div>
+    <div class="form-group form-row">
+      <div>
+        <label class="form-label">Score Obtained</label>
+        <input class="form-input" type="number" id="gr-score" placeholder="85" min="0">
+      </div>
+      <div>
+        <label class="form-label">Total Marks</label>
+        <input class="form-input" type="number" id="gr-total" placeholder="100" min="1">
+      </div>
+    </div>
+    <div class="form-group form-row">
+      <div>
+        <label class="form-label">Weight (%)</label>
+        <input class="form-input" type="number" id="gr-weight" placeholder="30" min="1" max="100">
+      </div>
+      <div>
+        <label class="form-label">Credit Hours</label>
+        <input class="form-input" type="number" id="gr-credits" placeholder="3" min="1" max="6">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('grade-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveGrade()">Save Grade</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLASS NOTES VIEWER MODAL -->
+<div class="modal-overlay hidden" id="notes-modal">
+  <div class="modal" style="max-width:520px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="modal-title" id="notes-modal-title" style="margin-bottom:0;">📝 Class Notes</div>
+      <button class="btn-cancel" style="padding:5px 10px;font-size:12px;" onclick="closeModal('notes-modal')">✕ Close</button>
+    </div>
+    <div id="notes-modal-meta" style="font-size:12px;color:var(--text3);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);"></div>
+    <div id="notes-modal-body" style="font-size:13px;line-height:1.8;color:var(--text2);white-space:pre-wrap;font-family:var(--mono);background:var(--surface2);border-radius:var(--r-sm);padding:14px;min-height:80px;max-height:55vh;overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-save" onclick="editEventFromNotes()">✏️ Edit Notes</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
