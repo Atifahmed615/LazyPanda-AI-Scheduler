@@ -10,6 +10,13 @@ const CAT_COLORS = {
   other: { dot:'#9090a8', badge:'#9090a8', bg:'rgba(144,144,168,0.1)', label:'OTHER' },
 };
 const PRIORITY_COLORS = { high:'#f87171', medium:'#fbbf24', low:'#34d399' };
+const STATE_STORAGE_KEY = 'classflow_state';
+const API_KEY_STORAGE_KEY = 'lazy_panda_api_key';
+const DOCS_STORAGE_KEY = 'lazy_panda_uploaded_docs';
+const OPTIMIZER_STORAGE_KEY = 'lazy_panda_optimizer_result';
+const DEFAULT_VIEW = 'dashboard';
+let uploadedDocs = [];
+let lastOptimizerResult = null;
 
 function defaultEvents() {
   const today = new Date();
@@ -50,11 +57,11 @@ function defaultTasks() {
   ];
 }
 
-let state = { events: [], tasks: [], attendance: [], grades: [], apiKey: '', theme: 'dark', accent: '#7c6ff7' };
+let state = { events: [], tasks: [], attendance: [], grades: [], apiKey: '', theme: 'dark', accent: '#7c6ff7', currentView: DEFAULT_VIEW };
 
 function loadState() {
   try {
-    const saved = localStorage.getItem('classflow_state');
+    const saved = localStorage.getItem(STATE_STORAGE_KEY);
     if (saved) {
       state = { ...state, ...JSON.parse(saved) };
       if (!Array.isArray(state.events)) state.events = [];
@@ -65,6 +72,20 @@ function loadState() {
       state.theme = 'dark';
       state.accent = '#7c6ff7';
     }
+    const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (savedApiKey) state.apiKey = savedApiKey;
+    try {
+      const savedDocs = localStorage.getItem(DOCS_STORAGE_KEY);
+      uploadedDocs = savedDocs ? JSON.parse(savedDocs) : [];
+      if (!Array.isArray(uploadedDocs)) uploadedDocs = [];
+    } catch(e) {
+      uploadedDocs = [];
+    }
+    try {
+      lastOptimizerResult = localStorage.getItem(OPTIMIZER_STORAGE_KEY) || null;
+    } catch(e) {
+      lastOptimizerResult = null;
+    }
     if (!state.attendance) state.attendance = [];
     if (!state.grades) state.grades = [];
     if (!state.notifMinutes) state.notifMinutes = 10;
@@ -72,6 +93,7 @@ function loadState() {
     if (!state.gcalClientId) state.gcalClientId = '';
     if (!state.waPhone) state.waPhone = '';
     if (!state.waServer) state.waServer = '';
+    if (!state.currentView) state.currentView = DEFAULT_VIEW;
     document.documentElement.setAttribute('data-theme', state.theme || 'dark');
     if (state.accent) document.documentElement.style.setProperty('--accent', state.accent);
     const statusEl = document.getElementById('api-status-sidebar');
@@ -83,7 +105,21 @@ function loadState() {
 }
 
 function saveState() {
-  try { localStorage.setItem('classflow_state', JSON.stringify(state)); } catch(e) {}
+  try {
+    localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+  } catch(e) {}
+  try {
+    if (state.apiKey) localStorage.setItem(API_KEY_STORAGE_KEY, state.apiKey);
+    else localStorage.removeItem(API_KEY_STORAGE_KEY);
+  } catch(e) {}
+  try {
+    if (uploadedDocs.length) localStorage.setItem(DOCS_STORAGE_KEY, JSON.stringify(uploadedDocs));
+    else localStorage.removeItem(DOCS_STORAGE_KEY);
+  } catch(e) {}
+  try {
+    if (lastOptimizerResult) localStorage.setItem(OPTIMIZER_STORAGE_KEY, lastOptimizerResult);
+    else localStorage.removeItem(OPTIMIZER_STORAGE_KEY);
+  } catch(e) {}
 }
 
 function resetData() {
@@ -166,6 +202,36 @@ function render() {
   const schedView = document.getElementById('view-schedule');
   if (schedView && !schedView.classList.contains('hidden')) renderCalendar();
   updateBadge();
+}
+
+function isValidView(view) {
+  return views.includes(view);
+}
+
+function getOpenModalId() {
+  const openModal = document.querySelector('.modal-overlay:not(.hidden)');
+  return openModal ? openModal.id : null;
+}
+
+function openModal(id, pushHistory = true) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  if (pushHistory) history.pushState({ panel: 'modal', modal: id, view: state.currentView || DEFAULT_VIEW }, '', location.href);
+}
+
+function closeModal(id, useHistory = true) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  const wasOpen = !modal.classList.contains('hidden');
+  modal.classList.add('hidden');
+  if (useHistory && wasOpen && history.state && history.state.panel === 'modal' && history.state.modal === id) history.back();
+}
+
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay').forEach(function(modal) {
+    modal.classList.add('hidden');
+  });
 }
 
 let timerInterval;
@@ -389,9 +455,15 @@ function renderCalendar() {
   });
 }
 const views = ['dashboard','schedule','tasks','deadlines','focus','attendance','grades','notes-chat','optimizer','settings'];
-function showView(v) {
+function showView(v, options) {
+  const opts = options || {};
+  if (!isValidView(v)) v = DEFAULT_VIEW;
+
   // Close drawer if it was open (drawer items: attendance, grades, notes-chat, optimizer, settings)
-  closeMobileDrawer();
+  closeMobileDrawer(false);
+  closeChatOverlay(false);
+  state.currentView = v;
+  if (opts.persist !== false) saveState();
   
   // Set view visibility
   views.forEach(id => {
@@ -429,6 +501,11 @@ function showView(v) {
   if(v==='grades') renderGrades();
   if(v==='notes-chat') renderNotesDocs();
   if(v==='optimizer') renderOptimizerOutput();
+
+  if (opts.pushHistory !== false) {
+    const hash = v === DEFAULT_VIEW ? '' : '#' + v;
+    history.pushState({ view: v }, '', hash || location.pathname + location.search);
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -440,17 +517,28 @@ function toggleMobileDrawer() {
   if(!drawer || !overlay) return;
   
   const isOpen = drawer.classList.contains('open');
-  drawer.classList.toggle('open');
-  overlay.classList.toggle('open');
+  if (isOpen) closeMobileDrawer();
+  else openMobileDrawer();
 }
 
-function closeMobileDrawer() {
+function openMobileDrawer(pushHistory = true) {
   const drawer = document.getElementById('mobile-drawer');
   const overlay = document.getElementById('mobile-drawer-overlay');
   if(!drawer || !overlay) return;
-  
+  drawer.classList.add('open');
+  overlay.classList.add('open');
+  if (pushHistory) history.pushState({ panel: 'drawer', view: state.currentView || DEFAULT_VIEW }, '', location.href);
+}
+
+function closeMobileDrawer(useHistory = true) {
+  const drawer = document.getElementById('mobile-drawer');
+  const overlay = document.getElementById('mobile-drawer-overlay');
+  if(!drawer || !overlay) return;
+
+  const wasOpen = drawer.classList.contains('open');
   drawer.classList.remove('open');
   overlay.classList.remove('open');
+  if (useHistory && wasOpen && history.state && history.state.panel === 'drawer') history.back();
 }
 
 // ══════════════════════════════════════════════
@@ -468,7 +556,7 @@ function showAddModal() {
   document.getElementById('ev-location').value = '';
   document.getElementById('ev-recurring').value = 'none';
   document.getElementById('ev-notes').value = '';
-  document.getElementById('event-modal').classList.remove('hidden');
+  openModal('event-modal');
 }
 function editEvent(id) {
   const ev = state.events.find(e=>e.id===id);
@@ -483,7 +571,7 @@ function editEvent(id) {
   document.getElementById('ev-location').value = ev.location||'';
   document.getElementById('ev-recurring').value = ev.recurring||'none';
   document.getElementById('ev-notes').value = ev.notes||'';
-  document.getElementById('event-modal').classList.remove('hidden');
+  openModal('event-modal');
 }
 function saveEvent() {
   const title = document.getElementById('ev-title').value.trim();
@@ -592,11 +680,26 @@ function openNotesViewer(id) {
   const body = document.getElementById('notes-modal-body');
   body.textContent = ev.notes && ev.notes.trim() ? ev.notes : '(No notes yet — click Edit Notes to add some.)';
   body.style.color = ev.notes && ev.notes.trim() ? 'var(--text)' : 'var(--text3)';
-  document.getElementById('notes-modal').classList.remove('hidden');
+  openModal('notes-modal');
 }
 function editEventFromNotes() {
-  closeModal('notes-modal');
-  if (viewingNotesEventId) editEvent(viewingNotesEventId);
+  const id = viewingNotesEventId;
+  closeModal('notes-modal', false);
+  if (!id) return;
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+  editingEventId = id;
+  document.getElementById('event-modal-title').textContent = 'Edit Event';
+  document.getElementById('ev-title').value = ev.title;
+  document.getElementById('ev-date').value = ev.date;
+  document.getElementById('ev-start').value = ev.start;
+  document.getElementById('ev-end').value = ev.end;
+  document.getElementById('ev-category').value = ev.category;
+  document.getElementById('ev-location').value = ev.location || '';
+  document.getElementById('ev-recurring').value = ev.recurring || 'none';
+  document.getElementById('ev-notes').value = ev.notes || '';
+  openModal('event-modal', false);
+  history.replaceState({ panel: 'modal', modal: 'event-modal', view: state.currentView || DEFAULT_VIEW }, '', location.href);
 }
 
 // ══════════════════════════════════════════════
@@ -606,7 +709,7 @@ function showAddTaskModal() {
   document.getElementById('tk-name').value = '';
   document.getElementById('tk-due').value = todayStr();
   document.getElementById('tk-priority').value = 'medium';
-  document.getElementById('task-modal').classList.remove('hidden');
+  openModal('task-modal');
 }
 function saveTask() {
   const name = document.getElementById('tk-name').value.trim();
@@ -634,12 +737,10 @@ function deleteTask(id) {
   saveState(); render();
 }
 
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
 // ══════════════════════════════════════════════
 //  MOBILE CHAT
 // ══════════════════════════════════════════════
-function openChatOverlay() {
+function openChatOverlay(pushHistory = true) {
   const overlay = document.getElementById('chat-overlay');
   overlay.classList.add('open');
   document.getElementById('chat-close-btn').style.display = '';
@@ -648,12 +749,15 @@ function openChatOverlay() {
     const msgsEl = document.getElementById('chat-messages');
     if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
   });
+  if (pushHistory) history.pushState({ panel: 'chat', view: state.currentView || DEFAULT_VIEW }, '', location.href);
 }
-function closeChatOverlay() {
+function closeChatOverlay(useHistory = true) {
   const overlay = document.getElementById('chat-overlay');
+  const wasOpen = overlay.classList.contains('open');
   overlay.classList.remove('open');
   document.getElementById('chat-close-btn').style.display = 'none';
   document.getElementById('chat-fab').style.display = '';
+  if (useHistory && wasOpen && history.state && history.state.panel === 'chat') history.back();
 }
 
 // ══════════════════════════════════════════════
@@ -661,11 +765,24 @@ function closeChatOverlay() {
 // ══════════════════════════════════════════════
 function saveApiKey() {
   const key = document.getElementById('settings-api-key').value.trim();
-  state.apiKey = key;
-  saveState();
   const statusEl = document.getElementById('api-key-status');
-  if (key) { statusEl.textContent = '✓ Key saved'; statusEl.style.color='var(--green)'; }
-  else { statusEl.textContent = 'Key cleared'; statusEl.style.color='var(--text3)'; }
+  state.apiKey = key;
+  let stored = true;
+  try {
+    if (key) localStorage.setItem(API_KEY_STORAGE_KEY, key);
+    else localStorage.removeItem(API_KEY_STORAGE_KEY);
+  } catch(e) {
+    stored = false;
+  }
+  saveState();
+  statusEl.style.display = 'block';
+  if (stored) {
+    if (key) { statusEl.textContent = '✓ Key saved'; statusEl.style.color='var(--green)'; }
+    else { statusEl.textContent = 'Key cleared'; statusEl.style.color='var(--text3)'; }
+  } else {
+    statusEl.textContent = 'Could not save key on this device.';
+    statusEl.style.color = 'var(--coral)';
+  }
   document.getElementById('api-status-sidebar').textContent = key ? '⬤ Connected' : '⬤ No key';
   document.getElementById('api-status-sidebar').style.color = key ? 'var(--green)' : 'var(--coral)';
 }
@@ -974,6 +1091,19 @@ function exportData() {
     tasks: state.tasks,
     attendance: state.attendance || [],
     grades: state.grades || [],
+    settings: {
+      apiKey: state.apiKey || '',
+      theme: state.theme || 'dark',
+      accent: state.accent || '#7c6ff7',
+      notifMinutes: state.notifMinutes || 10,
+      notificationsEnabled: !!state.notificationsEnabled,
+      gcalClientId: state.gcalClientId || '',
+      waPhone: state.waPhone || '',
+      waServer: state.waServer || '',
+      currentView: state.currentView || DEFAULT_VIEW
+    },
+    uploadedDocs: uploadedDocs || [],
+    optimizerResult: lastOptimizerResult || null
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1004,8 +1134,22 @@ function importData(e) {
       state.tasks = backup.tasks;
       state.attendance = backup.attendance || [];
       state.grades = backup.grades || [];
+      state.apiKey = backup.settings?.apiKey || state.apiKey || '';
+      state.theme = backup.settings?.theme || 'dark';
+      state.accent = backup.settings?.accent || '#7c6ff7';
+      state.notifMinutes = backup.settings?.notifMinutes || 10;
+      state.notificationsEnabled = !!backup.settings?.notificationsEnabled;
+      state.gcalClientId = backup.settings?.gcalClientId || '';
+      state.waPhone = backup.settings?.waPhone || '';
+      state.waServer = backup.settings?.waServer || '';
+      state.currentView = backup.settings?.currentView || DEFAULT_VIEW;
+      uploadedDocs = Array.isArray(backup.uploadedDocs) ? backup.uploadedDocs : [];
+      lastOptimizerResult = backup.optimizerResult || null;
+      document.documentElement.setAttribute('data-theme', state.theme);
+      document.documentElement.style.setProperty('--accent', state.accent);
       saveState();
       render();
+      showView(isValidView(state.currentView) ? state.currentView : DEFAULT_VIEW, { pushHistory: false, persist: false });
       if (el) {
         el.style.display = 'block';
         el.style.color = 'var(--green)';
@@ -1183,7 +1327,7 @@ function showMarkAttendanceModal() {
   subEl.innerHTML = subjects.length
     ? subjects.map(s => `<option value="${s}">${s}</option>`).join('')
     : `<option value="Other">Other</option>`;
-  document.getElementById('attendance-modal').classList.remove('hidden');
+  openModal('attendance-modal');
 }
 
 function saveAttendance() {
@@ -1323,7 +1467,7 @@ function showAddGradeModal(id) {
   document.getElementById('gr-total').value = g ? g.total : '100';
   document.getElementById('gr-weight').value = g ? g.weight : '100';
   document.getElementById('gr-credits').value = g ? g.credits : '3';
-  document.getElementById('grade-modal').classList.remove('hidden');
+  openModal('grade-modal');
 }
 
 function saveGrade() {
@@ -1734,9 +1878,6 @@ async function tryOfflineAI(prompt) {
 // ══════════════════════════════════════════════
 //  PHASE 4 — CHAT WITH NOTES (Feature 11)
 // ══════════════════════════════════════════════
-// In-memory document store: { id, name, type, text, size }
-let uploadedDocs = [];
-
 async function handleNotesUpload(event) {
   const files = Array.from(event.target.files);
   event.target.value = ''; // reset so same file can be re-uploaded
@@ -1751,6 +1892,7 @@ async function handleNotesUpload(event) {
     uploadedDocs.push({ id, name: file.name, type: file.type, text: text.slice(0, 40000), size: file.size });
     addNotesChatMsg('ai', `✅ Loaded <b>${file.name}</b> (${(file.size/1024).toFixed(1)} KB). Ask me anything about it!`);
   }
+  saveState();
   renderNotesDocs();
 }
 
@@ -1783,6 +1925,7 @@ async function extractPdfText(file) {
 
 function removeDoc(id) {
   uploadedDocs = uploadedDocs.filter(d => d.id !== id);
+  saveState();
   renderNotesDocs();
   showToast('Document removed');
 }
@@ -1888,8 +2031,6 @@ function handleNotesChatKey(e) {
 // ══════════════════════════════════════════════
 //  PHASE 4 — AUTO SCHEDULE OPTIMIZER (Feature 12)
 // ══════════════════════════════════════════════
-let lastOptimizerResult = null;
-
 function renderOptimizerOutput() {
   const el = document.getElementById('optimizer-output');
   if (!el) return;
@@ -1959,6 +2100,7 @@ FORMAT your response as a structured plan with each day as a section. For each s
     const data = await res.json();
     const plan = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Could not generate plan.';
     lastOptimizerResult = plan;
+    saveState();
 
     // Render the plan with action buttons
     el.innerHTML = `<div class="optimizer-result">
@@ -2213,22 +2355,67 @@ async function sendWhatsAppReminder(ev, minsBeforeClass) {
 
 // WhatsApp reminder logic is integrated directly into checkUpcomingNotifications() above.
 
+function initializeNavigation() {
+  const hashView = location.hash ? location.hash.slice(1) : '';
+  const initialView = isValidView(hashView) ? hashView : (isValidView(state.currentView) ? state.currentView : DEFAULT_VIEW);
+  state.currentView = initialView;
+  history.replaceState(
+    { view: initialView },
+    '',
+    initialView === DEFAULT_VIEW ? location.pathname + location.search : '#' + initialView
+  );
+  showView(initialView, { pushHistory: false, persist: false });
+}
+
+window.addEventListener('popstate', function(e) {
+  const stateObj = e.state || {};
+  const openModalId = getOpenModalId();
+
+  if (stateObj.panel === 'chat') {
+    closeAllModals();
+    closeMobileDrawer(false);
+    openChatOverlay(false);
+    return;
+  }
+
+  if (stateObj.panel === 'drawer') {
+    closeAllModals();
+    closeChatOverlay(false);
+    openMobileDrawer(false);
+    return;
+  }
+
+  if (stateObj.panel === 'modal' && stateObj.modal) {
+    closeChatOverlay(false);
+    closeMobileDrawer(false);
+    closeAllModals();
+    openModal(stateObj.modal, false);
+    return;
+  }
+
+  closeChatOverlay(false);
+  closeMobileDrawer(false);
+  if (openModalId) closeModal(openModalId, false);
+  showView(isValidView(stateObj.view) ? stateObj.view : DEFAULT_VIEW, { pushHistory: false });
+});
+
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 render();
+initializeNavigation();
 
 // Start notification scheduler if already permitted from a previous session
 if ('Notification' in window && Notification.permission === 'granted' && state.notificationsEnabled) {
   startNotificationScheduler();
 }
 
-// Auto-update timeline + notifications every minute
-setInterval(() => { renderTimeline(); renderUpcoming(); checkUpcomingNotifications(); }, 60000);
+// Auto-update timeline every minute
+setInterval(() => { renderTimeline(); renderUpcoming(); }, 60000);
 
 // Close modals on overlay click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.classList.add('hidden');
+    if (e.target === overlay) closeModal(overlay.id);
   });
 });
 window.showView = showView;
