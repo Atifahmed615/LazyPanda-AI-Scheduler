@@ -55,9 +55,16 @@ let state = { events: [], tasks: [], attendance: [], grades: [], apiKey: '', the
 function loadState() {
   try {
     const saved = localStorage.getItem('classflow_state');
-    if (saved) { state = { ...state, ...JSON.parse(saved) }; }
-    else { state.events = defaultEvents(); state.tasks = defaultTasks(); state.theme = 'dark'; state.accent = '#7c6ff7'; }
-    if (!state.events.length) state.events = defaultEvents();
+    if (saved) {
+      state = { ...state, ...JSON.parse(saved) };
+      if (!Array.isArray(state.events)) state.events = [];
+      if (!Array.isArray(state.tasks)) state.tasks = [];
+    } else {
+      state.events = defaultEvents();
+      state.tasks = defaultTasks();
+      state.theme = 'dark';
+      state.accent = '#7c6ff7';
+    }
     if (!state.attendance) state.attendance = [];
     if (!state.grades) state.grades = [];
     if (!state.notifMinutes) state.notifMinutes = 10;
@@ -80,9 +87,9 @@ function saveState() {
 }
 
 function resetData() {
-  if (!confirm('Reset all events, tasks, attendance and grades?')) return;
-  state.events = defaultEvents();
-  state.tasks = defaultTasks();
+  if (!confirm('Reset everything? All data will be lost.')) return;
+  state.events = [];
+  state.tasks = [];
   state.attendance = [];
   state.grades = [];
   saveState();
