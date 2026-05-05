@@ -29,36 +29,52 @@ self.addEventListener('activate', function(e) {
 // ── FETCH: Network-first for HTML, cache-first for assets ────────────────────
 self.addEventListener('fetch', function(e) {
   const url = new URL(e.request.url);
+
+  // Skip non-GET requests
+  if (e.request.method !== 'GET') return;
+
   const isHTML = e.request.destination === 'document' ||
                  url.pathname.endsWith('.html') ||
-                 url.pathname.endsWith('/') ||
-                 url.pathname === '/';
+                 url.pathname === '/' ||
+                 url.pathname.endsWith('/');
 
+  // ── HTML → Network First ─────────────────────────────
   if (isHTML) {
-    // Always fetch fresh HTML from network (so GitHub updates load immediately)
-    // Fall back to cache only when offline
     e.respondWith(
-      fetch(e.request).then(function(res) {
-        var clone = res.clone();
-        return caches.open(CACHE_VERSION).then(function(cache) { 
-          cache.put(e.request, clone);
-          return res;
-        });
-      }).catch(function() {
-        return caches.match(e.request).then(function(c) {
-          return c || caches.match('./index.html');
-        });
-      })
+      fetch(e.request)
+        .then(function(response) {
+          const copy = response.clone(); // clone immediately
+
+          caches.open(CACHE_VERSION).then(function(cache) {
+            cache.put(e.request, copy);
+          });
+
+          return response;
+        })
+        .catch(function() {
+          return caches.match(e.request).then(function(cached) {
+            return cached || caches.match('./index.html');
+          });
+        })
     );
-  } else {
-    // Cache-first for static assets
-    e.respondWith(
-      caches.match(e.request).then(function(cached) {
-        return cached || fetch(e.request).then(function(res) {
-          caches.open(CACHE_VERSION).then(function(cache) { cache.put(e.request, res.clone()); });
-          return res;
-        });
-      })
-    );
+    return;
   }
+
+  // ── ASSETS → Cache First ─────────────────────────────
+  e.respondWith(
+    caches.match(e.request).then(function(cached) {
+      if (cached) return cached;
+
+      return fetch(e.request).then(function(response) {
+        // 🚨 IMPORTANT: clone BEFORE anything else touches it
+        const copy = response.clone();
+
+        caches.open(CACHE_VERSION).then(function(cache) {
+          cache.put(e.request, copy);
+        });
+
+        return response;
+      });
+    })
+  );
 });
