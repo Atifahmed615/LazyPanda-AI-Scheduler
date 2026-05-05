@@ -2358,13 +2358,15 @@ async function sendWhatsAppReminder(ev, minsBeforeClass) {
 function initializeNavigation() {
   const hashView = location.hash ? location.hash.slice(1) : '';
   const initialView = isValidView(hashView) ? hashView : (isValidView(state.currentView) ? state.currentView : DEFAULT_VIEW);
-  state.currentView = initialView;
   history.replaceState(
-    { view: initialView },
+    { view: DEFAULT_VIEW },
     '',
-    initialView === DEFAULT_VIEW ? location.pathname + location.search : '#' + initialView
+    location.pathname + location.search
   );
   showView(initialView, { pushHistory: false, persist: false });
+  if (initialView !== DEFAULT_VIEW) {
+    history.pushState({ view: initialView }, '', '#' + initialView);
+  }
 }
 
 window.addEventListener('popstate', function(e) {
