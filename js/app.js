@@ -2403,6 +2403,7 @@ window.addEventListener('popstate', function(e) {
 
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
+loadState();
 render();
 initializeNavigation();
 
