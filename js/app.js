@@ -637,6 +637,10 @@ function openChatOverlay() {
   overlay.classList.add('open');
   document.getElementById('chat-close-btn').style.display = '';
   document.getElementById('chat-fab').style.display = 'none';
+  requestAnimationFrame(() => {
+    const msgsEl = document.getElementById('chat-messages');
+    if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+  });
 }
 function closeChatOverlay() {
   const overlay = document.getElementById('chat-overlay');
