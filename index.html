@@ -18,25 +18,52 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg"> 
 <script>
+  window.LAZY_PANDA_BUILD = '2026.05.06.2';
+  window.__lpSwRegistration = null;
+  window.__lpSwStatus = { text: 'Service worker not checked yet', color: 'var(--text3)' };
+  window.__setLpSwStatus = function(text, color) {
+    window.__lpSwStatus = { text: text, color: color || 'var(--text3)' };
+    if (typeof window.updateAppVersionUI === 'function') window.updateAppVersionUI();
+  };
+
   if ('serviceWorker' in navigator && !location.hostname.includes('claudeusercontent.com') && location.protocol === 'https:') {
     window.addEventListener('load', function() {
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', function() {
+        sessionStorage.setItem('lp_last_loaded_build', window.LAZY_PANDA_BUILD);
         if (refreshing) return;
         refreshing = true;
         window.location.reload();
       });
 
+      window.__setLpSwStatus('Checking for updates…', 'var(--text3)');
       navigator.serviceWorker.register('./sw.js')
         .then(function(reg){
+          window.__lpSwRegistration = reg;
           console.log('SW registered');
+          window.__setLpSwStatus('App is up to date.', 'var(--green)');
+          reg.addEventListener('updatefound', function() {
+            window.__setLpSwStatus('Downloading an update…', 'var(--amber)');
+            const worker = reg.installing;
+            if (!worker) return;
+            worker.addEventListener('statechange', function() {
+              if (worker.state === 'installed') {
+                window.__setLpSwStatus('Update installed. The app will refresh automatically.', 'var(--green)');
+              }
+            });
+          });
           reg.update();
           setInterval(function() {
             reg.update();
           }, 60000);
         })
-        .catch(function(e){ console.log('SW failed:', e); });
+        .catch(function(e){
+          console.log('SW failed:', e);
+          window.__setLpSwStatus('Update check failed.', 'var(--coral)');
+        });
     });
+  } else {
+    window.__lpSwStatus = { text: 'Auto updates require the installed web app over HTTPS.', color: 'var(--text3)' };
   }
 </script>
 </head>
@@ -77,56 +104,34 @@
     </div>
 
     <div class="nav-section">Main</div>
-    <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">
+    <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')" role="button" tabindex="0" aria-label="Navigate to Dashboard" aria-current="page">
       <span class="nav-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </span> Dashboard
     </div>
-    <div class="nav-item" id="nav-schedule" onclick="showView('schedule')">
+    <div class="nav-item" id="nav-schedule" onclick="showView('schedule')" role="button" tabindex="0" aria-label="Navigate to Schedule">
       <span class="nav-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="8" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
       </span> Schedule
     </div>
-    <div class="nav-item" id="nav-tasks" onclick="showView('tasks')">
+    <div class="nav-item" id="nav-tasks" onclick="showView('tasks')" role="button" tabindex="0" aria-label="Navigate to Tasks">
       <span class="nav-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       </span> Tasks <span class="nav-badge" id="task-badge">0</span>
     </div>
-    <div class="nav-item" id="nav-deadlines" onclick="showView('deadlines')">
+    <div class="nav-item" id="nav-deadlines" onclick="showView('deadlines')" role="button" tabindex="0" aria-label="Navigate to Deadlines">
       <span class="nav-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </span> Deadlines
     </div>
-    <div class="nav-item" id="nav-focus" onclick="showView('focus')">
+    <div class="nav-item" id="nav-focus" onclick="showView('focus')" role="button" tabindex="0" aria-label="Navigate to Focus">
       <span class="nav-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
       </span> Focus
     </div>
 
-    <div class="nav-section" style="margin-top:12px;">Academic</div>
-    <div class="nav-item" id="nav-attendance" onclick="showView('attendance')">
-      <span class="nav-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      </span> Attendance
-    </div>
-    <div class="nav-item" id="nav-grades" onclick="showView('grades')">
-      <span class="nav-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-      </span> GPA Tracker
-    </div>
-    <div class="nav-item" id="nav-notes-chat" onclick="showView('notes-chat')">
-      <span class="nav-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </span> Chat Notes
-    </div>
-    <div class="nav-item" id="nav-optimizer" onclick="showView('optimizer')">
-      <span class="nav-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      </span> Optimizer
-    </div>
-
     <div class="nav-section" style="margin-top:12px;">System</div>
-    <div class="nav-item" id="nav-settings" onclick="showView('settings')">
+    <div class="nav-item" id="nav-settings" onclick="showView('settings')" role="button" tabindex="0" aria-label="Navigate to Settings">
       <span class="nav-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </span> Settings
@@ -171,12 +176,38 @@
 
       <!-- Upcoming Class -->
       <div id="upcoming-card-wrap" style="margin-bottom:8px;"></div>
+      <div id="workload-widget-wrap" style="margin-bottom:8px;"></div>
 
       <!-- Today's Schedule -->
       <div>
         <div class="section-header">
           <span class="section-title">TODAY'S SCHEDULE</span>
-          <button class="btn-add" onclick="showAddModal()">＋ Add Event</button>
+          <button class="btn-add" id="btn-quick-add" onclick="showQuickAdd(event)">＋ Add Event</button>
+        </div>
+        <div id="quick-add-popover" class="quick-add-popover hidden">
+          <div style="margin-bottom:12px;">
+            <input class="form-input" id="qa-title" placeholder="Event title" style="margin-bottom:8px;">
+            <input class="form-input" type="date" id="qa-date">
+          </div>
+          <div style="margin-bottom:12px;">
+            <input class="form-input" type="time" id="qa-start" aria-label="Start time">
+          </div>
+          <div style="margin-bottom:12px;">
+            <select class="form-input" id="qa-category">
+              <option value="class">Class</option>
+              <option value="study">Study</option>
+              <option value="meeting">Meeting</option>
+              <option value="personal">Personal</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="btn-save" style="flex:1;" onclick="saveQuickEvent()">Add</button>
+            <button class="btn-ghost" onclick="closeQuickAdd()" style="flex:1;">Cancel</button>
+          </div>
+          <div style="margin-top:8px;text-align:center;">
+            <a href="#" onclick="event.preventDefault();closeQuickAdd();showAddModal();" style="font-size:12px;color:var(--accent);text-decoration:none;">More options →</a>
+          </div>
         </div>
         <div class="timeline" id="timeline"></div>
       </div>
@@ -222,6 +253,8 @@
           <div class="view-toggle-btn active" id="btn-view-week" onclick="setScheduleMode('week')">Week</div>
           <div class="view-toggle-btn" id="btn-view-list" onclick="setScheduleMode('list')">List</div>
         </div>
+        <button class="btn-add" id="btn-toggle-free-time" onclick="toggleFreeTime()">Free Time</button>
+        <button class="btn-add" onclick="exportIcal()">Export iCal</button>
         <button class="btn-add" onclick="showAddModal()">＋ Add Event</button>
       </div>
 
@@ -280,99 +313,6 @@
       <div id="deadlines-list"></div>
     </div>
 
-    <!-- ATTENDANCE VIEW -->
-    <div id="view-attendance" class="hidden">
-      <div class="section-header">
-        <span class="section-title">ATTENDANCE TRACKER</span>
-        <button class="btn-add" onclick="showMarkAttendanceModal()">＋ Mark Session</button>
-      </div>
-      <div id="attendance-summary"></div>
-      <div id="attendance-log" style="margin-top:16px;"></div>
-    </div>
-
-    <!-- CHAT WITH NOTES VIEW -->
-    <div id="view-notes-chat" class="hidden">
-      <div class="section-header">
-        <span class="section-title">CHAT WITH NOTES</span>
-        <button class="btn-add" onclick="document.getElementById('notes-pdf-input').click()">＋ Upload PDF</button>
-        <input type="file" id="notes-pdf-input" accept=".pdf,.txt,.md" multiple style="display:none;" onchange="handleNotesUpload(event)">
-      </div>
-      <div id="notes-docs-list" style="margin-bottom:12px;"></div>
-      <div class="notes-chat-box">
-        <div class="notes-chat-messages" id="notes-chat-messages">
-          <div class="msg ai">
-            <div class="msg-bubble">📚 Hi! Upload a PDF, text file, or I can search across all your class notes. Ask me anything about your study material!</div>
-            <div class="msg-time">Now</div>
-          </div>
-        </div>
-        <div class="chat-input-area" style="border-top:1px solid var(--border);padding:12px;">
-          <textarea class="chat-input" id="notes-chat-input" placeholder="Ask about your notes or uploaded documents…" rows="1" onkeydown="handleNotesChatKey(event)" oninput="autoResize(this)"></textarea>
-          <button class="chat-send" onclick="sendNotesChat()">↑</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- AUTO OPTIMIZER VIEW -->
-    <div id="view-optimizer" class="hidden">
-      <div class="section-header">
-        <span class="section-title">SCHEDULE OPTIMIZER</span>
-        <button class="btn-add" onclick="runOptimizer()">⚡ Optimize Now</button>
-      </div>
-      <div id="optimizer-prefs" style="margin-bottom:16px;">
-        <div class="settings-section" style="margin-bottom:0;">
-          <div class="settings-label" style="margin-bottom:10px;">Optimization Preferences</div>
-          <div class="form-group form-row">
-            <div>
-              <label class="form-label">Study block duration</label>
-              <select class="form-input" id="opt-block-size">
-                <option value="60">1 hour</option>
-                <option value="90" selected>1.5 hours</option>
-                <option value="120">2 hours</option>
-              </select>
-            </div>
-            <div>
-              <label class="form-label">Peak focus time</label>
-              <select class="form-input" id="opt-peak-time">
-                <option value="morning">Morning (6–12)</option>
-                <option value="afternoon">Afternoon (12–17)</option>
-                <option value="evening" selected>Evening (17–21)</option>
-                <option value="night">Night (21–24)</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group form-row" style="margin-bottom:0;">
-            <div>
-              <label class="form-label">Break between blocks</label>
-              <select class="form-input" id="opt-break-size">
-                <option value="10">10 min</option>
-                <option value="15" selected>15 min</option>
-                <option value="30">30 min</option>
-              </select>
-            </div>
-            <div>
-              <label class="form-label">Days to plan ahead</label>
-              <select class="form-input" id="opt-days">
-                <option value="3">3 days</option>
-                <option value="7" selected>7 days</option>
-                <option value="14">14 days</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="optimizer-output"></div>
-    </div>
-
-    <!-- GPA TRACKER VIEW -->
-    <div id="view-grades" class="hidden">
-      <div class="section-header">
-        <span class="section-title">GPA TRACKER</span>
-        <button class="btn-add" onclick="showAddGradeModal()">＋ Add Grade</button>
-      </div>
-      <div id="gpa-summary"></div>
-      <div id="grades-list" style="margin-top:16px;"></div>
-    </div>
-
     <!-- SETTINGS VIEW -->
     <div id="view-settings" class="hidden">
       <div class="settings-section">
@@ -381,15 +321,20 @@
         <div class="form-group form-row">
           <div>
             <label class="form-label">Theme</label>
-            <select class="form-input" id="settings-theme" onchange="changeTheme()">
+            <select class="form-input" id="settings-theme" onchange="changeTheme()" aria-label="Select theme">
               <option value="dark">Dark (Default)</option>
               <option value="amoled">AMOLED (Pure Black)</option>
               <option value="light">Light</option>
+              <option value="high-contrast">High Contrast</option>
             </select>
           </div>
           <div>
             <label class="form-label">Accent Color</label>
             <input class="form-input" type="color" id="settings-accent" onchange="changeAccent()" style="padding:4px; height:38px; cursor:pointer;">
+          </div>
+          <div>
+            <label class="form-label">Weekly Hour Limit</label>
+            <input class="form-input" type="number" min="10" max="120" step="1" id="settings-weekly-limit" onchange="changeWeeklyHourLimit()">
           </div>
         </div>
       </div>
@@ -424,10 +369,20 @@
         </div>
       </div>
       <div class="settings-section">
+        <div class="settings-label">🧩 App Version</div>
+        <div class="settings-desc">Use this to confirm whether your phone has the latest deployed build.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <button class="btn-cancel" onclick="checkForUpdates()">Check for Updates</button>
+        </div>
+        <div id="app-version-value" style="font-size:12px;color:var(--text2);margin-bottom:6px;">Build: --</div>
+        <div id="app-update-status" style="font-size:12px;color:var(--text3);padding:8px;background:var(--surface2);border-radius:6px;">Update status unavailable.</div>
+      </div>
+      <div class="settings-section">
         <div class="settings-label">💾 Backup & Restore</div>
         <div class="settings-desc">Export your data before updating the app to keep it safe. Import to restore.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-save" onclick="exportData()">⬇️ Export Data</button>
+          <button class="btn-save" onclick="exportIcal()" style="background:var(--accent);">📅 Export to iCal</button>
           <label class="btn-cancel" style="cursor:pointer;">
             ⬆️ Import Data
             <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
@@ -537,15 +492,14 @@
 
       <div class="quick-chips" id="quick-chips">
         <div class="chip" onclick="sendQuick('What classes do I have today?')">Today's classes</div>
-        <div class="chip" onclick="triggerDailyBriefing()">📋 Daily briefing</div>
         <div class="chip" onclick="sendQuick('Check my schedule for any conflicts or overlapping events')">⚡ Check conflicts</div>
-        <div class="chip" onclick="triggerExamMode()">🎯 Exam mode</div>
         <div class="chip" onclick="sendQuick('What free time do I have today?')">Free time today</div>
         <div class="chip" onclick="sendQuick('Create a task: Review ML notes, due today, high priority')">Add task</div>
       </div>
 
       <div class="chat-input-area">
         <textarea class="chat-input" id="chat-input" placeholder="Ask anything about your schedule…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="voice-btn" id="voice-btn" title="Click to speak" aria-label="Voice input: click to speak your message" onclick="startVoiceInput()">🎤</button>
         <button class="chat-send" id="chat-send" onclick="sendMessage()">↑</button>
       </div>
 
@@ -617,46 +571,6 @@
     <button class="mobile-drawer-close" onclick="closeMobileDrawer()">✕</button>
   </div>
   <div class="mobile-drawer-content">
-    <div class="mobile-drawer-item" onclick="showView('attendance')">
-      <div class="mobile-drawer-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      </div>
-      <div>
-        <div class="mobile-drawer-item-title">Attendance</div>
-        <div class="mobile-drawer-item-desc">Track class attendance</div>
-      </div>
-    </div>
-
-    <div class="mobile-drawer-item" onclick="showView('grades')">
-      <div class="mobile-drawer-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-      </div>
-      <div>
-        <div class="mobile-drawer-item-title">GPA Tracker</div>
-        <div class="mobile-drawer-item-desc">View grades & GPA</div>
-      </div>
-    </div>
-
-    <div class="mobile-drawer-item" onclick="showView('notes-chat')">
-      <div class="mobile-drawer-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </div>
-      <div>
-        <div class="mobile-drawer-item-title">Notes & Chat</div>
-        <div class="mobile-drawer-item-desc">AI notes & messages</div>
-      </div>
-    </div>
-
-    <div class="mobile-drawer-item" onclick="showView('optimizer')">
-      <div class="mobile-drawer-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      </div>
-      <div>
-        <div class="mobile-drawer-item-title">Schedule Optimizer</div>
-        <div class="mobile-drawer-item-desc">Optimize your schedule</div>
-      </div>
-    </div>
-
     <div class="mobile-drawer-item" onclick="showView('settings')">
       <div class="mobile-drawer-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -673,7 +587,7 @@
 <button class="mobile-chat-fab" id="chat-fab" onclick="openChatOverlay()">🐼</button>
 
 <!-- ADD EVENT MODAL -->
-<div class="modal-overlay hidden" id="event-modal">
+<div class="modal-overlay hidden" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
   <div class="modal">
     <div class="modal-title" id="event-modal-title">Add Event</div>
     <div class="form-group">
@@ -717,23 +631,34 @@
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
         <option value="weekends">Sat & Sun</option>
+        <option value="biweekly">Biweekly</option>
+        <option value="monthly">Monthly</option>
       </select>
     </div>
-    <div class="form-group">
-      <label class="form-label">📝 Class Notes (optional)</label>
-      <textarea class="form-input" id="ev-notes" rows="4" placeholder="Lecture notes, topics covered, homework assigned…" style="resize:vertical;font-family:var(--mono);font-size:12px;line-height:1.6;"></textarea>
+    <div class="form-group form-row">
+      <div>
+        <label class="form-label">Recurrence End</label>
+        <input class="form-input" type="date" id="ev-recurring-end">
+      </div>
+      <div>
+        <label class="form-label">Custom Color</label>
+        <input class="form-input" type="color" id="ev-color" onchange="this.dataset.reset=''" style="padding:4px;height:38px;cursor:pointer;">
+      </div>
+    </div>
+    <div style="margin-top:-8px;margin-bottom:14px;">
+      <button class="inline-link-btn" type="button" onclick="resetEventColor()">Reset to category color</button>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('event-modal')">Cancel</button>
-      <button class="btn-save" onclick="saveEvent()">Save Event</button>
+          <button class="btn-cancel" onclick="closeModal('event-modal')" aria-label="Cancel adding event">Cancel</button>
+      <button class="btn-save" onclick="saveEvent()" aria-label="Save event">Save Event</button>
     </div>
   </div>
 </div>
 
 <!-- ADD TASK MODAL -->
-<div class="modal-overlay hidden" id="task-modal">
+<div class="modal-overlay hidden" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
   <div class="modal">
-    <div class="modal-title">Add Task</div>
+    <div class="modal-title" id="task-modal-title">Add Task</div>
     <div class="form-group">
       <label class="form-label">Task Name</label>
       <input class="form-input" id="tk-name" placeholder="e.g. Review ML notes">
@@ -752,96 +677,67 @@
         </select>
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('task-modal')">Cancel</button>
-      <button class="btn-save" onclick="saveTask()">Save Task</button>
-    </div>
-  </div>
-</div>
-
-<!-- MARK ATTENDANCE MODAL -->
-<div class="modal-overlay hidden" id="attendance-modal">
-  <div class="modal">
-    <div class="modal-title">Mark Attendance</div>
-    <div class="form-group">
-      <label class="form-label">Subject / Class</label>
-      <select class="form-input" id="att-subject"></select>
-    </div>
     <div class="form-group form-row">
       <div>
-        <label class="form-label">Date</label>
-        <input class="form-input" type="date" id="att-date">
+        <label class="form-label">Recurring</label>
+        <select class="form-input" id="tk-recurring">
+          <option value="none">One-time</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
       </div>
       <div>
-        <label class="form-label">Status</label>
-        <select class="form-input" id="att-status">
-          <option value="present">✅ Present</option>
-          <option value="absent">❌ Absent</option>
-          <option value="late">🕐 Late</option>
+        <label class="form-label">Weekly Day</label>
+        <select class="form-input" id="tk-recurring-day">
+          <option value="0">Sunday</option>
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
         </select>
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Note (optional)</label>
-      <input class="form-input" id="att-note" placeholder="e.g. Sick leave">
+      <label class="form-label">Subtasks</label>
+      <div class="subtask-input-row">
+        <input class="form-input" id="tk-subtask-input" placeholder="Add checklist item">
+        <button class="btn-add" type="button" onclick="addTaskModalSubtask()">Add</button>
+      </div>
+      <div id="tk-subtasks-list" class="subtasks-editor"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('attendance-modal')">Cancel</button>
-      <button class="btn-save" onclick="saveAttendance()">Save</button>
+      <button class="btn-cancel" onclick="closeModal('task-modal')" aria-label="Cancel adding task">Cancel</button>
+      <button class="btn-save" onclick="saveTask()" aria-label="Save task">Save Task</button>
     </div>
   </div>
 </div>
 
-<!-- ADD GRADE MODAL -->
-<div class="modal-overlay hidden" id="grade-modal">
-  <div class="modal">
-    <div class="modal-title" id="grade-modal-title">Add Grade</div>
-    <div class="form-group">
-      <label class="form-label">Subject / Course</label>
-      <input class="form-input" id="gr-subject" placeholder="e.g. Machine Learning">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Assessment Name</label>
-      <input class="form-input" id="gr-name" placeholder="e.g. Midterm Exam">
-    </div>
-    <div class="form-group form-row">
+<!-- Academic modals removed (attendance, grades, notes). -->
+
+<!-- KEYBOARD SHORTCUTS MODAL -->
+<div class="modal-overlay hidden" id="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-modal-title">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title" id="shortcuts-modal-title">⌨️ Keyboard Shortcuts</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;">
       <div>
-        <label class="form-label">Score Obtained</label>
-        <input class="form-input" type="number" id="gr-score" placeholder="85" min="0">
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">Navigation</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">1–6</kbd> Switch view</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">/</kbd> Focus search</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">?</kbd> Help (this menu)</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">Esc</kbd> Close modal</div>
       </div>
       <div>
-        <label class="form-label">Total Marks</label>
-        <input class="form-input" type="number" id="gr-total" placeholder="100" min="1">
-      </div>
-    </div>
-    <div class="form-group form-row">
-      <div>
-        <label class="form-label">Weight (%)</label>
-        <input class="form-input" type="number" id="gr-weight" placeholder="30" min="1" max="100">
-      </div>
-      <div>
-        <label class="form-label">Credit Hours</label>
-        <input class="form-input" type="number" id="gr-credits" placeholder="3" min="1" max="6">
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">Quick Actions</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">N</kbd> New event</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">T</kbd> New task</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">Ctrl+Z</kbd> Undo</div>
+        <div style="margin-bottom:6px;"><kbd style="background:var(--surface2);padding:2px 6px;border-radius:3px;">Ctrl+Shift+Z</kbd> Redo</div>
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('grade-modal')">Cancel</button>
-      <button class="btn-save" onclick="saveGrade()">Save Grade</button>
-    </div>
-  </div>
-</div>
-
-<!-- CLASS NOTES VIEWER MODAL -->
-<div class="modal-overlay hidden" id="notes-modal">
-  <div class="modal" style="max-width:520px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div class="modal-title" id="notes-modal-title" style="margin-bottom:0;">📝 Class Notes</div>
-      <button class="btn-cancel" style="padding:5px 10px;font-size:12px;" onclick="closeModal('notes-modal')">✕ Close</button>
-    </div>
-    <div id="notes-modal-meta" style="font-size:12px;color:var(--text3);margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);"></div>
-    <div id="notes-modal-body" style="font-size:13px;line-height:1.8;color:var(--text2);white-space:pre-wrap;font-family:var(--mono);background:var(--surface2);border-radius:var(--r-sm);padding:14px;min-height:80px;max-height:55vh;overflow-y:auto;"></div>
-    <div class="modal-actions" style="margin-top:16px;">
-      <button class="btn-save" onclick="editEventFromNotes()">✏️ Edit Notes</button>
+      <button class="btn-save" onclick="closeModal('shortcuts-modal')">Got it!</button>
     </div>
   </div>
 </div>

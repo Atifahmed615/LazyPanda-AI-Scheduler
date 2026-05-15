@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lazy-panda-runtime-v5';
+const CACHE_NAME = 'lazy-panda-runtime-v6';
 const APP_SHELL = [
   './',
   './index.html',
